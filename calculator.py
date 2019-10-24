@@ -40,6 +40,8 @@ To submit your homework:
 
 
 """
+import traceback
+import operator
 
 
 def add(*args):
@@ -47,11 +49,29 @@ def add(*args):
 
     # TODO: Fill sum with the correct value, based on the
     # args provided.
-    sum = "0"
+    sum = 0
+    for each in args:
+        sum += int(each)
 
     return sum
 
 # TODO: Add functions for handling more arithmetic operations.
+
+
+def multiply(*args):
+    result = 1
+    for each in args:
+        result *= int(each)
+    return result
+
+
+def subtract(*args):
+    return int(args[0]) - int(args[1])
+
+
+def divide(*args):
+    return int(args[0]) / int(args[1])
+
 
 def resolve_path(path):
     """
@@ -63,10 +83,23 @@ def resolve_path(path):
     # examples provide the correct *syntax*, but you should
     # determine the actual values of func and args using the
     # path.
-    func = add
-    args = ['25', '32']
+    # Path is something like /add/2/3
+    subPath = path.split('/')
+    func = subPath[1]
+    methods = {
+        "add": add,
+        "subtract": subtract,
+        "multiply": multiply,
+        "divide": divide
+    }
 
-    return func, args
+    if func not in methods:
+        raise NotImplementedError
+
+    args = [subPath[2], subPath[3]]
+
+    return methods[func], args
+
 
 def application(environ, start_response):
     # TODO: Your application code from the book database
@@ -76,9 +109,22 @@ def application(environ, start_response):
     #
     # TODO (bonus): Add error handling for a user attempting
     # to divide by zero.
-    pass
+    status = '200 OK'
+    result = 'Method not implemented.  Available methods: add, subtract, multiply, divide'
+    try:
+        func, args = resolve_path(environ["PATH_INFO"])
+        result = func(*args)
+    except NotImplementedError:
+        status = '404 Not Found'
+
+    headers = [("Content-type", "text/html")]
+    start_response(status, headers)
+    return [str(result).encode()]
+
 
 if __name__ == '__main__':
     # TODO: Insert the same boilerplate wsgiref simple
     # server creation that you used in the book database.
-    pass
+    from wsgiref.simple_server import make_server
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
